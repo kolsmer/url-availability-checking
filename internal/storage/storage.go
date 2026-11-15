@@ -3,6 +3,8 @@ package storage
 import (
 	"context"
 	"errors"
+	"time"
+
 	"github.com/google/uuid"
 )
 
@@ -13,11 +15,12 @@ var (
 type Storage interface {
 	GetStatusAndResult(ctx context.Context, id string) (Check, error)
 	AddURLs(ctx context.Context, urls []string) (string, error)
+	AddResult(ctx context.Context, id string, url string, result URLCheck) (string, error)
 }
 
 type URLCheck struct {
-	HTTPStatus string
-	responseTime int64
+	HTTPStatus int
+	ResponseTime time.Duration
 	Err error 
 }
 
@@ -65,3 +68,12 @@ func (s *InternalStorage) AddURLs(ctx context.Context, urls []string) (string, e
 	return id, nil
 }
 
+func (s *InternalStorage) AddResult(ctx context.Context,id string, url string, result URLCheck) (string, error){
+	if ctx.Err() != nil {
+		return "", ctx.Err()
+	}
+	check := s.memory[id]
+	check.URLs[url] = result
+	s.memory[id] = check
+	return id, nil
+}
