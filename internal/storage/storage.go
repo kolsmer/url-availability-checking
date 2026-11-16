@@ -16,7 +16,7 @@ var (
 type Storage interface {
 	GetStatusAndResult(ctx context.Context, id string) (Check, error)
 	AddURLs(ctx context.Context, urls []string) (string, error)
-	AddResult(ctx context.Context, id string, url string, result URLCheck) (string, error)
+	AddResult(ctx context.Context, id string, url string, result URLCheck) error
 	UpdateStatus(ctx context.Context, id string, status string) error
 }
 
@@ -72,7 +72,7 @@ func (s *InternalStorage) AddURLs(ctx context.Context, urls []string) (string, e
 	}
 	id := uuid.NewString()
 	check := Check{
-		Status: "pending",
+		Status: "running",
 		URLs:   make(map[string]URLCheck),
 	}
 	for _, url := range urls {
@@ -84,19 +84,19 @@ func (s *InternalStorage) AddURLs(ctx context.Context, urls []string) (string, e
 	return id, nil
 }
 
-func (s *InternalStorage) AddResult(ctx context.Context,id string, url string, result URLCheck) (string, error){
+func (s *InternalStorage) AddResult(ctx context.Context,id string, url string, result URLCheck) error{
 	if ctx.Err() != nil {
-		return "", ctx.Err()
+		return ctx.Err()
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	check, ok := s.memory[id]
 	if !ok {
-		return "", ErrIDNotFound
+		return ErrIDNotFound
 	}
 	check.URLs[url] = result
-	return id, nil
+	return nil
 }
 
 func (s *InternalStorage) UpdateStatus(ctx context.Context, id string, status string) error {

@@ -50,6 +50,7 @@ func (h *URLHandler) CheckAvailability(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusAccepted)
 	json.NewEncoder(w).Encode(map[string]string{"id": id})
 }
 
@@ -59,7 +60,7 @@ func (h *URLHandler) GetStatusAndResult(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	id := r.URL.Query().Get("id")
+	id := r.PathValue("id")
 	if id == "" {
 		http.Error(w, "ID is required", http.StatusBadRequest)
 		return
