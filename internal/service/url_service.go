@@ -2,8 +2,11 @@ package service
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 	"sync"
 	"time"
 
@@ -11,6 +14,7 @@ import (
 )
 var (
 	maxRequestTimeout   = 3 * time.Second
+	ErrInvalidURLs      = errors.New("invalid URL list")
 )
 type URLService struct {
 	appCtx context.Context
@@ -34,7 +38,13 @@ func (s *URLService) CheckAvailability(ctx context.Context, urls []string)  (str
 	}
 
 	if len(urls) == 0 {
-		return "", nil
+		return "", fmt.Errorf("%w: at least one URL is required", ErrInvalidURLs)
+	}
+	for _, address := range urls {
+		parsed, err := url.Parse(address)
+		if err != nil || (parsed.Scheme != "http" && parsed.Scheme != "https") || parsed.Hostname() == "" {
+			return "", fmt.Errorf("%w: %q must be http or https URL", ErrInvalidURLs, address)
+		}
 	}
 	
 	id, err := s.storage.AddURLs(ctx, urls)

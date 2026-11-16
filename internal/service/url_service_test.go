@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"sync"
@@ -47,7 +48,32 @@ func (m *mockStorage) UpdateStatus(ctx context.Context, id string, status string
     return nil
 }		
 
-
+func TestCheckAvailabilityRejectsInvalidURLs(t *testing.T) {
+	cases := []struct {
+		name string
+		urls []string
+	}{
+		{"empty list", nil},
+		{"empty URL", []string{""}},
+		{"missing scheme", []string{"example.com"}},
+		{"unsupported scheme", []string{"ftp://example.com"}},
+		{"missing host", []string{"https:///path"}},
+		{"invalid escape", []string{"https://example.com/%zz"}},
+		{"invalid URL after valid URL", []string{"https://example.com", "hello"}},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			svc := NewURLService(context.Background(), nil, 1)
+			id, err := svc.CheckAvailability(context.Background(), c.urls)
+			if !errors.Is(err, ErrInvalidURLs) {
+				t.Fatalf("expected ErrInvalidURLs, got %v", err)
+			}
+			if id != "" {
+				t.Fatalf("expected no task ID, got %q", id)
+			}
+		})
+	}
+}
 
 func TestCheckURL(t *testing.T) {
 	t.Run("returns 200", func(t *testing.T) {
